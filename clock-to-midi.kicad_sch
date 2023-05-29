@@ -740,6 +740,11 @@
     (uuid f823fcfc-e944-4afc-9416-5b082f833742)
   )
 
+  (text "protect against overvoltage\nand reverse polarity" (at 86.995 62.865 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid c437818a-c2b7-4413-bf4f-66972068a1fd)
+  )
+
   (symbol (lib_id "Device:R") (at 89.535 109.855 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 0bb757dd-6ec1-45c7-bd04-6b546834356b)
@@ -1020,10 +1025,10 @@
   (symbol (lib_id "Device:R") (at 97.79 78.105 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid da44fce3-90f3-4070-b586-dd3ea38f2708)
-    (property "Reference" "R?" (id 0) (at 99.695 76.8349 0)
+    (property "Reference" "R?" (id 0) (at 100.33 76.8349 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "12k" (id 1) (at 99.695 79.3749 0)
+    (property "Value" "120k" (id 1) (at 100.33 79.3749 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "" (id 2) (at 96.012 78.105 90)
@@ -1042,7 +1047,7 @@
     (property "Reference" "R?" (id 0) (at 100.33 88.2649 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "10k" (id 1) (at 100.33 90.8049 0)
+    (property "Value" "100k" (id 1) (at 100.33 90.8049 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "" (id 2) (at 96.012 89.535 90)
@@ -1119,10 +1124,10 @@
       (reference "R?") (unit 1) (value "220") (footprint "")
     )
     (path "/da44fce3-90f3-4070-b586-dd3ea38f2708"
-      (reference "R?") (unit 1) (value "12k") (footprint "")
+      (reference "R?") (unit 1) (value "120k") (footprint "")
     )
     (path "/f4255b72-3d51-41f4-a3d5-e58520dfed20"
-      (reference "R?") (unit 1) (value "10k") (footprint "")
+      (reference "R?") (unit 1) (value "100k") (footprint "")
     )
     (path "/4eb4e693-4e46-4e15-a215-70c5cf9e7dab"
       (reference "SW?") (unit 1) (value "SW_Push") (footprint "")
