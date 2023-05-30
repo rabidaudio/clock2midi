@@ -15,11 +15,14 @@
 #define DEBOUNCE_TIME_MS 5
 Bounce btn = Bounce(BTN_PIN, DEBOUNCE_TIME_MS);
 
-// #define DEBUG 1
+//#define DEBUG 1
 
 /* STATE */
 // is the output disabled by the toggle button
-volatile bool enabled = false;
+#define STATE_DISABLED 0
+#define STATE_ENABLING 2
+#define STATE_ENABLED 1
+volatile size_t state = STATE_DISABLED;
 // is the clock input sending pulses
 volatile bool triggering = false;
 // how many clocks do we have left to send this beat
@@ -49,13 +52,25 @@ void loop()
   btn.update();
   if (btn.risingEdge())
   {
-    if (enabled)
+    switch (state)
     {
-      stop();
-    }
-    else
-    {
-      start();
+      case STATE_DISABLED:
+        // request to turn on on the next clock
+        state = STATE_ENABLING;
+        // turn the LED on to indicate something changed
+        ledOn();
+        break;
+      case STATE_ENABLING:
+        // cancel enabling
+        state = STATE_DISABLED;
+        ledOff();
+        break;
+      case STATE_ENABLED:
+        // stop immediately
+        state = STATE_DISABLED;
+        midiStop();
+        ledOff();
+        break;
     }
   }
 
@@ -66,7 +81,9 @@ void loop()
   Serial.print("\t");
   Serial.print(triggering ? 5000 : 0);
   Serial.print("\t");
-  Serial.println(ticksRemaining * 1024);
+  Serial.print(state * 3000);
+  Serial.print("\t");
+  Serial.println(state == STATE_ENABLED ? ticksRemaining * 1000 : 0);
   delay(10);
 #endif
 }
@@ -77,6 +94,14 @@ void loop()
 void onClock()
 {
   noInterrupts();
+
+  // if requested to turn on, turn on
+  // and send a start message first
+  if (state == STATE_ENABLING)
+  {
+    state = STATE_ENABLED;
+    midiStart();
+  }
 
   if (triggering)
   {
@@ -104,9 +129,9 @@ void onClock()
 
   restartTicks();
 
-  tick(); // go ahead and do the first tick immediately
+  // tick(); // go ahead and do the first tick immediately
   // blink the LED. It will blink off on the first T3 interval
-  if (enabled)
+  if (state == STATE_ENABLED)
     ledOn();
 
   triggering = true;
@@ -141,21 +166,6 @@ ISR(TIMER1_OVF_vect)
 inline uint16_t convertTimer1toTimer3(uint16_t t1)
 {
   return t1 / MIDI_CLOCKS_PER_BEAT * (1024 / 64);
-}
-
-inline void start()
-{
-  // send the start message before enabling the clock
-  midiStart();
-  enabled = true;
-}
-
-inline void stop()
-{
-  // stop the clock before sending the stop message
-  enabled = false;
-  midiStop();
-  ledOff();
 }
 
 inline void ledOn()
@@ -196,7 +206,7 @@ inline void tick()
   if (ticksRemaining > 0)
   {
     ticksRemaining--;
-    if (enabled)
+    if (state == STATE_ENABLED)
       midiClock();
   }
 }
