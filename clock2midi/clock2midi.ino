@@ -64,7 +64,9 @@ void loop()
   Serial.print("\t");
   Serial.print(TCNT3);
   Serial.print("\t");
-  Serial.println(triggering ? 5000 : 0);
+  Serial.print(triggering ? 5000 : 0);
+  Serial.print("\t");
+  Serial.println(ticksRemaining * 1024);
   delay(10);
 #endif
 }
@@ -126,21 +128,19 @@ ISR(TIMER1_OVF_vect)
 }
 
 // Timer3 is 1024/64 = 16x faster than Timer1.
-// But also Timer3's counter value is 1/2 period,
-// because it counts both up and down per cycle.
 // 1 cycle of Timer1 is 1 beat, and we need 24
 // clock pulses per beat, so we then need to divide
 // by 24. Ultimately then we just need to divide the
-// counter by 24*2/(1024/64) = 3.
+// counter by 24/(1024/64) = 1.5.
 // The 24 factor for MIDI is very annoying. 16
 // or 32 would have been very easy, but here
 // division by a factor of 3 requires floating
-// point math. Still, dividing a uint16_t by 3
+// point math. Still, dividing a uint16_t by 1.5
 // seems to take around 16us, so we'll just do
 // it in an interrupt.
 inline uint16_t convertTimer1toTimer3(uint16_t t1)
 {
-  return t1 / MIDI_CLOCKS_PER_BEAT * (1024 / 64) / 2;
+  return t1 / MIDI_CLOCKS_PER_BEAT * (1024 / 64);
 }
 
 inline void start()
@@ -226,7 +226,7 @@ inline void configureTimer1()
 
 inline void configureTimer3()
 {
-  // Run Timer3 in phase-correct PWM mode
+  // Run Timer3 in CTC mode
   // with a prescaler of 64.
   // Top is OCR3A. On top interrupt, send msg.
   // TCCR3A = COM3A1 COM3A0 COM3B1 COM3B0 COM3C1 COM3C0 WGM31  WGM30
@@ -236,20 +236,17 @@ inline void configureTimer3()
   TCCR3A = 0;
   TCCR3B = 0;
   // Compare A
-  OCR3A = F_CPU / 64 /*prescaler*/
-          / 2        /*phase+freq correct mode*/
-          / (MIDI_CLOCKS_PER_BEAT * 2 /*Hz, ie 120 BPM*/);
+  OCR3A = F_CPU / 64 /*prescaler*/ / (MIDI_CLOCKS_PER_BEAT * 2 /*Hz, ie 120 BPM*/);
 
-  // Phase and frequency correct PWM.
   // Compare A on, B and C disconnected.
   // COMnA1/COMnB1/COMnC1 = 0
   // COMnA0/COMnB0/COMnC0 = 1
   // WGM13:0 = 8, 9, 10, or 11
-  // Mode9: WGMn3=1,WGMn2=0,WGMn1=0,WGMn0=1
-  // PWM, Phase and Frequency Correct, Top=OCRnA
-  // Pre-scaler 64: CSn2=0,CSn1=1,CSn0=1
-  TCCR3A |= (0 << COM3A1) | (1 << COM3A0) | (0 << WGM31) | (1 << WGM30);
-  TCCR3B |= (1 << WGM33) | (0 << WGM32) | (0 << CS32) | (1 << CS31) | (1 << CS30);
+  // Mode4: WGM33=0,WGM32=1,WGM31=0,WGM30=0
+  // CTC, Top=OCRnA
+  // Pre-scaler 64: CS32=0,CS31=1,CS30=1
+  TCCR3A |= (0 << COM3A1) | (1 << COM3A0) | (0 << WGM31) | (0 << WGM30);
+  TCCR3B |= (0 << WGM33) | (1 << WGM32) | (0 << CS32) | (1 << CS31) | (1 << CS30);
 
   TCNT3 = 0;               // reset counter to trigger on the next tick
   TIMSK3 |= (1 << OCIE3A); // Turn compare A interrupt on
